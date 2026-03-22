@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const modelName = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const modelName = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
   supplySearchLog("request", { userType, product, model: modelName });
 

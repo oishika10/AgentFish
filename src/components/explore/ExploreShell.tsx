@@ -20,15 +20,17 @@ import { RouteDetailPanel } from "@/components/panels/RouteDetailPanel";
 import { TradeInsightsOverlay } from "@/components/panels/TradeInsightsOverlay";
 import { RouteTimelineModal } from "@/components/modals/RouteTimelineModal";
 import { ScenarioToggle } from "@/components/modals/ScenarioToggle";
+import { MarketOverviewPanel } from "@/components/panels/MarketOverviewPanel";
 import { OptimizeFor } from "@/types";
 import { clientFriendlySupplyError, titleForSupplyErrorCode } from "@/lib/supplySearchErrors";
+import { cn } from "@/lib/cn";
 
 const DynamicMapView = dynamic(() => import("@/components/map/MapView").then((mod) => mod.MapView), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-zinc-100" />,
 });
 
-type TabId = "routes" | "compare" | "filters";
+type TabId = "overview" | "routes" | "compare" | "filters";
 
 type GeminiErrorBanner = { title: string; message: string; code: string };
 
@@ -37,7 +39,7 @@ export function ExploreShell() {
   const userType = searchParams.get("userType")?.trim() ?? "";
   const product = searchParams.get("product")?.trim() ?? "";
 
-  const [tab, setTab] = useState<TabId>("routes");
+  const [tab, setTab] = useState<TabId>("overview");
   const [priority, setPriority] = useState<OptimizeFor>("cost");
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(routes[0]?.id ?? null);
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -144,6 +146,7 @@ export function ExploreShell() {
           <aside className="flex h-full flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
             <Tabs
               items={[
+                { id: "overview", label: "Overview" },
                 { id: "routes", label: "Routes" },
                 { id: "compare", label: "Compare" },
                 { id: "filters", label: "Filters" },
@@ -189,6 +192,20 @@ export function ExploreShell() {
             ) : null}
 
             <div className="h-full space-y-3 overflow-y-auto pr-1">
+              <div
+                className={cn(
+                  "min-h-0 flex-1 flex-col",
+                  tab !== "overview" && "hidden",
+                )}
+                aria-hidden={tab !== "overview"}
+              >
+                <MarketOverviewPanel
+                  userType={userType}
+                  product={product}
+                  tabActive={tab === "overview"}
+                />
+              </div>
+
               {tab === "routes" ? (
                 <>
                   <AIRecommendation route={bestRoute} />

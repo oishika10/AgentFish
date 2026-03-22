@@ -110,28 +110,34 @@ export function HeatmapLayer() {
   const map = useMap();
 
   useEffect(() => {
-    // Dynamic require ensures leaflet.heat attaches to the global L at runtime
-    require("leaflet.heat");
+    let cancelled = false;
+    let heat: L.Layer | undefined;
 
-    const heat = L.heatLayer(SUPPLIER_DENSITY, {
-      radius: 45,
-      blur: 50,
-      maxZoom: 10,
-      max: 1.0,
-      minOpacity: 0.15,
-      gradient: {
-        0.0: "#e8e8e8",
-        0.2: "#c0c0c0",
-        0.4: "#8a8a8a",
-        0.6: "#5a5a5a",
-        0.8: "#333333",
-        1.0: "#111111",
-      },
+    void import("leaflet.heat").then(() => {
+      if (cancelled) return;
+      heat = L.heatLayer(SUPPLIER_DENSITY, {
+        radius: 45,
+        blur: 50,
+        maxZoom: 10,
+        max: 1.0,
+        minOpacity: 0.15,
+        gradient: {
+          0.0: "#e8e8e8",
+          0.2: "#c0c0c0",
+          0.4: "#8a8a8a",
+          0.6: "#5a5a5a",
+          0.8: "#333333",
+          1.0: "#111111",
+        },
+      });
+      heat.addTo(map);
     });
 
-    heat.addTo(map);
     return () => {
-      map.removeLayer(heat);
+      cancelled = true;
+      if (heat) {
+        map.removeLayer(heat);
+      }
     };
   }, [map]);
 
