@@ -3,8 +3,9 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { EnrichedRoute } from "@/lib/costCalculator";
+import { UserLocation } from "@/hooks/useGeolocation";
 import { RoutePolyline } from "@/components/map/RoutePolyline";
 import { SupplierMarker } from "@/components/map/SupplierMarker";
 import { UserLocationMarker } from "@/components/map/UserLocationMarker";
@@ -14,9 +15,18 @@ interface MapViewProps {
   selectedRouteId: string | null;
   showTradeAdvantages: boolean;
   onSelectRoute: (routeId: string) => void;
+  userLocation: UserLocation;
 }
 
-export function MapView({ routes, selectedRouteId, showTradeAdvantages, onSelectRoute }: MapViewProps) {
+function MapCenterUpdater({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo([lat, lng], map.getZoom(), { animate: true, duration: 1.2 });
+  }, [lat, lng, map]);
+  return null;
+}
+
+export function MapView({ routes, selectedRouteId, showTradeAdvantages, onSelectRoute, userLocation }: MapViewProps) {
   useEffect(() => {
     delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
     L.Icon.Default.mergeOptions({
@@ -27,13 +37,19 @@ export function MapView({ routes, selectedRouteId, showTradeAdvantages, onSelect
   }, []);
 
   return (
-    <MapContainer center={[43.6532, -79.3832]} zoom={3} style={{ height: "100%", width: "100%" }} zoomControl>
+    <MapContainer
+      center={[userLocation.lat, userLocation.lng]}
+      zoom={3}
+      style={{ height: "100%", width: "100%" }}
+      zoomControl
+    >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
 
-      <UserLocationMarker lat={43.6532} lng={-79.3832} />
+      <MapCenterUpdater lat={userLocation.lat} lng={userLocation.lng} />
+      <UserLocationMarker lat={userLocation.lat} lng={userLocation.lng} label={userLocation.label} />
 
       {routes.map((route) => {
         const dimmed = showTradeAdvantages && !route.tradeAgreementId;
