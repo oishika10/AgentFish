@@ -1,0 +1,88 @@
+import { Supplier } from "@/types";
+
+export const supplierSuggestions = [
+  "textiles",
+  "electronics components",
+  "automotive parts",
+  "industrial fasteners",
+  "medical devices",
+  "solar modules",
+  "food packaging",
+];
+
+export const userTypeSuggestions = [
+  "small business owner",
+  "procurement manager",
+  "operations lead",
+  "import specialist",
+  "supply chain analyst",
+];
+
+export const suppliers: Supplier[] = [
+  {
+    id: "sup-1",
+    name: "Shenzhen Nova Components",
+    country: "China",
+    city: "Shenzhen",
+    coordinates: { lat: 22.5431, lng: 114.0579 },
+    products: ["electronics components", "industrial sensors"],
+    certifications: ["ISO 9001", "RoHS"],
+    sustainabilityRating: 72,
+    priceRange: [18000, 34000],
+  },
+  {
+    id: "sup-2",
+    name: "Monterrey Precision Metals",
+    country: "Mexico",
+    city: "Monterrey",
+    coordinates: { lat: 25.6866, lng: -100.3161 },
+    products: ["automotive parts", "industrial fasteners"],
+    certifications: ["ISO 9001", "IATF 16949"],
+    sustainabilityRating: 79,
+    priceRange: [21000, 39000],
+  },
+  {
+    id: "sup-3",
+    name: "Da Nang Textile Collective",
+    country: "Vietnam",
+    city: "Da Nang",
+    coordinates: { lat: 16.0544, lng: 108.2022 },
+    products: ["textiles", "technical fabrics"],
+    certifications: ["OEKO-TEX", "BSCI"],
+    sustainabilityRating: 84,
+    priceRange: [15000, 30000],
+  },
+  {
+    id: "sup-4",
+    name: "Hamburg Industrial Systems",
+    country: "Germany",
+    city: "Hamburg",
+    coordinates: { lat: 53.5511, lng: 9.9937 },
+    products: ["automation equipment", "machinery parts"],
+    certifications: ["ISO 14001", "ISO 45001"],
+    sustainabilityRating: 88,
+    priceRange: [32000, 52000],
+  },
+  {
+    id: "sup-5",
+    name: "Seoul Smart Manufacturing",
+    country: "South Korea",
+    city: "Seoul",
+    coordinates: { lat: 37.5665, lng: 126.978 },
+    products: ["electronics components", "semiconductor tooling"],
+    certifications: ["ISO 9001", "KC"],
+    sustainabilityRating: 81,
+    priceRange: [27000, 47000],
+  },
+  {
+    id: "sup-6",
+    name: "Osaka Mobility Supply",
+    country: "Japan",
+    city: "Osaka",
+    coordinates: { lat: 34.6937, lng: 135.5023 },
+    products: ["automotive parts", "precision bearings"],
+    certifications: ["JIS", "ISO 9001"],
+    sustainabilityRating: 86,
+    priceRange: [26000, 44000],
+  },
+];
