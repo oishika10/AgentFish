@@ -57,6 +57,10 @@ export interface RouteCostBreakdown {
   dutiesBeforeAgreement: number;
   dutiesAfterAgreement: number;
   handlingFees: number;
+  /** Estimated tariff rate (%) when sourced from AI or external estimates */
+  tariffRatePercent?: number;
+  /** Estimated import-side tax rate (%) when sourced from AI or external estimates */
+  importTaxPercent?: number;
 }
 
 export interface ShippingRoute {
