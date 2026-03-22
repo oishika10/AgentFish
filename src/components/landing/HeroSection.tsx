@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
-import { Ship } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const DynamicLandingMap = dynamic(
   () => import("@/components/landing/LandingMap").then((mod) => mod.LandingMap),
@@ -17,54 +17,64 @@ export function HeroSection() {
   const canExplore = userType.trim().length > 0 && product.trim().length > 0;
 
   return (
-    <section className="relative min-h-screen overflow-hidden">
-      <div className="absolute inset-0 z-0">
+    <section className="relative min-h-screen overflow-hidden bg-[#f7f8fa]">
+      {/* Map background — muted, interactive, with supplier heatmap */}
+      <div className="absolute inset-0 z-0 opacity-60">
         <DynamicLandingMap />
       </div>
 
-      <div className="absolute inset-0 z-[1] bg-white/40" />
+      {/* Content — pointer-events pass through to the map */}
+      <div className="pointer-events-none relative z-[2] flex min-h-screen flex-col items-center justify-center px-4">
 
-      <div className="relative z-[2] flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="mb-10 flex items-center gap-2.5">
-          <Ship className="h-8 w-8 text-blue-600" />
-          <span className="text-2xl font-bold tracking-tight text-zinc-900">AgentFish</span>
-        </div>
 
-        <div className="rounded-2xl border border-white/70 bg-white/80 px-6 py-8 shadow-xl backdrop-blur-sm sm:px-10 sm:py-10">
-          <p className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-4 text-lg text-zinc-700 sm:text-xl">
-            <span>As a</span>
-            <input
-              value={userType}
-              onChange={(e) => setUserType(e.target.value)}
-              placeholder="procurement manager"
-              className="w-44 border-b-2 border-blue-400 bg-transparent px-1 text-center text-lg font-semibold text-zinc-900 outline-none transition-colors placeholder:font-normal placeholder:text-zinc-400 focus:border-blue-600 sm:w-56 sm:text-xl"
-            />
-            <span>, I am looking for</span>
-            <input
-              value={product}
-              onChange={(e) => setProduct(e.target.value)}
-              placeholder="electronics components"
-              className="w-44 border-b-2 border-blue-400 bg-transparent px-1 text-center text-lg font-semibold text-zinc-900 outline-none transition-colors placeholder:font-normal placeholder:text-zinc-400 focus:border-blue-600 sm:w-56 sm:text-xl"
-            />
-          </p>
+        {/* Prompt card */}
+        <div className="pointer-events-auto w-full max-w-2xl">
+          <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_2px_20px_rgba(0,0,0,0.06)] sm:px-6 sm:py-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex flex-1 items-center gap-2 text-[15px] text-zinc-700">
+                <span className="shrink-0">As a</span>
+                <input
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value)}
+                  placeholder="procurement manager"
+                  className="min-w-0 flex-1 bg-transparent text-[15px] text-zinc-900 outline-none placeholder:text-zinc-400"
+                />
+              </div>
 
-          <div className="mt-6 flex justify-center">
-            <Link
-              href={
-                canExplore
-                  ? `/explore?userType=${encodeURIComponent(userType)}&product=${encodeURIComponent(product)}&optimize=cost`
-                  : "#"
-              }
-              tabIndex={canExplore ? 0 : -1}
-            >
-              <button
-                disabled={!canExplore}
-                className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+              <div className="hidden h-5 w-px bg-zinc-200 sm:block" />
+
+              <div className="flex flex-1 items-center gap-2 text-[15px] text-zinc-700">
+                <span className="shrink-0">I need</span>
+                <input
+                  value={product}
+                  onChange={(e) => setProduct(e.target.value)}
+                  placeholder="electronics components"
+                  className="min-w-0 flex-1 bg-transparent text-[15px] text-zinc-900 outline-none placeholder:text-zinc-400"
+                />
+              </div>
+
+              <Link
+                href={
+                  canExplore
+                    ? `/explore?userType=${encodeURIComponent(userType)}&product=${encodeURIComponent(product)}&optimize=cost`
+                    : "#"
+                }
+                tabIndex={canExplore ? 0 : -1}
+                className="shrink-0"
               >
-                Explore Suppliers &amp; Routes
-              </button>
-            </Link>
+                <button
+                  disabled={!canExplore}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-white transition-colors hover:bg-zinc-800 disabled:opacity-25"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </Link>
+            </div>
           </div>
+
+          <p className="mt-4 text-center text-[13px] text-zinc-600">
+            Discover suppliers, compare routes, and uncover trade agreement savings.
+          </p>
         </div>
       </div>
     </section>
