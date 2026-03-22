@@ -42,14 +42,13 @@ const SENTENCES: SentencePart[][] = [
 ];
 
 // Scroll runway breakdown (total = STEPS viewports):
-//   Step 0 → blank dark screen
-//   Step 1 → sentence 1 fades in (previous fades out)
-//   Step 2 → sentence 2 fades in
-//   Step 3 → sentence 3 fades in
-//   Step 4 → sentence 4 ("Embark") fades in
-//   Step 5 → reveal trigger (overlay slides up)
-const STEPS = SENTENCES.length + 2; // 6
-const FADE_WINDOW = 0.4;
+//   Step 0 → sentence 1 auto-fades in after 1s (no scroll needed)
+//   Step 1 → sentence 1 fades out, sentence 2 fades in
+//   Step 2 → sentence 2 fades out, sentence 3 fades in
+//   Step 3 → sentence 3 fades out, sentence 4 ("Embark") fades in
+//   Step 4 → reveal trigger (overlay slides up)
+const STEPS = SENTENCES.length + 1; // 5
+const FADE_WINDOW = 0.4; // fraction of one step used for the fade transition
 
 function SentenceBlock({
   parts,
@@ -156,45 +155,65 @@ export function ScrollyIntro() {
 
   const { scrollYProgress } = useScroll({ container: containerRef });
 
-  const s = 1 / STEPS;
-  const fw = s * FADE_WINDOW;
+  const s = 1 / STEPS; // size of one step in progress units (≈ 0.167)
+  const fw = s * FADE_WINDOW; // fade window width in progress units
 
-  const opacity0 = useTransform(
+  // Timed intro: sentence 0 auto-fades in after 1 second
+  const introFade = useMotionValue(0);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      animate(introFade, 1, { duration: 0.8, ease: "easeOut" });
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [introFade]);
+
+  // Sentence 0: visible at scroll=0 (controlled by introFade), fades out at step 1
+  const scrollOpacity0 = useTransform(
     scrollYProgress,
-    [s * 1, s * 1 + fw, s * 2, s * 2 + fw],
-    [0, 1, 1, 0],
+    [0, s * 1, s * 1 + fw],
+    [1, 1, 0],
+  );
+  const scrollY0 = useTransform(
+    scrollYProgress,
+    [0, s * 1, s * 1 + fw],
+    [0, 0, -28],
+  );
+  const introY0 = useTransform(introFade, [0, 1], [20, 0]);
+  const opacity0 = useTransform(
+    [introFade, scrollOpacity0],
+    (latest) => (latest[0] as number) * (latest[1] as number),
   );
   const y0 = useTransform(
-    scrollYProgress,
-    [s * 1, s * 1 + fw, s * 2, s * 2 + fw],
-    [36, 0, 0, -36],
+    [introY0, scrollY0],
+    (latest) => (latest[0] as number) + (latest[1] as number),
   );
 
+  // Sentences 1–2: fade in at their step, fade out at the next
   const opacity1 = useTransform(
     scrollYProgress,
-    [s * 2, s * 2 + fw, s * 3, s * 3 + fw],
+    [s * 1, s * 1 + fw, s * 2, s * 2 + fw],
     [0, 1, 1, 0],
   );
   const y1 = useTransform(
     scrollYProgress,
-    [s * 2, s * 2 + fw, s * 3, s * 3 + fw],
-    [36, 0, 0, -36],
+    [s * 1, s * 1 + fw, s * 2, s * 2 + fw],
+    [28, 0, 0, -28],
   );
 
   const opacity2 = useTransform(
     scrollYProgress,
-    [s * 3, s * 3 + fw, s * 4, s * 4 + fw],
+    [s * 2, s * 2 + fw, s * 3, s * 3 + fw],
     [0, 1, 1, 0],
   );
   const y2 = useTransform(
     scrollYProgress,
-    [s * 3, s * 3 + fw, s * 4, s * 4 + fw],
-    [36, 0, 0, -36],
+    [s * 2, s * 2 + fw, s * 3, s * 3 + fw],
+    [28, 0, 0, -28],
   );
 
-  // Last sentence: fades in only, stays visible through reveal
-  const opacity3 = useTransform(scrollYProgress, [s * 4, s * 4 + fw], [0, 1]);
-  const y3 = useTransform(scrollYProgress, [s * 4, s * 4 + fw], [36, 0]);
+  // Last sentence: only fades in, stays visible through the reveal
+  const opacity3 = useTransform(scrollYProgress, [s * 3, s * 3 + fw], [0, 1]);
+  const y3 = useTransform(scrollYProgress, [s * 3, s * 3 + fw], [28, 0]);
 
   const sentenceAnimations = [
     { opacity: opacity0, y: y0 },
@@ -203,14 +222,23 @@ export function ScrollyIntro() {
     { opacity: opacity3, y: y3 },
   ];
 
-  // Progress bar: fills from step 1 to end of story
-  const progressValue = useTransform(
+  // Scroll indicator: fades in with the intro, fades out on first scroll
+  const scrollIndicatorOpacity = useTransform(
     scrollYProgress,
-    [s * 1, s * (SENTENCES.length + 1)],
-    [0, 1],
+    [0, s * 0.5],
+    [1, 0],
+  );
+  const indicatorOpacity = useTransform(
+    [introFade, scrollIndicatorOpacity],
+    (latest) => (latest[0] as number) * (latest[1] as number),
   );
 
-  const indicatorOpacity = useTransform(scrollYProgress, [0, s * 0.5], [1, 0]);
+  // Progress bar: maps scroll to 0–1 across the full sentence journey
+  const progressValue = useTransform(
+    scrollYProgress,
+    [0, s * SENTENCES.length],
+    [0, 1],
+  );
 
   useEffect(() => {
     return scrollYProgress.on("change", (v) => {
@@ -219,7 +247,7 @@ export function ScrollyIntro() {
         setHasScrolled(true);
       }
 
-      if (v >= s * (SENTENCES.length + 1) && !revealStartedRef.current) {
+      if (v >= s * SENTENCES.length && !revealStartedRef.current) {
         revealStartedRef.current = true;
         setRevealStarted(true);
         animate(overlayY, "-100%", {
