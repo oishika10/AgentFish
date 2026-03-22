@@ -398,8 +398,10 @@ export function ExploreShell() {
             <DynamicMapView
               routes={routesForMap}
               selectedRouteId={selectedRouteId}
+              comparedRouteIds={comparedRouteIds}
               showTradeAdvantages={showTradeAdvantages}
               onSelectRoute={setSelectedRouteId}
+              onCompareRoute={toggleCompare}
               userLocation={location}
             />
             <TradeInsightsOverlay showTradeAdvantages={showTradeAdvantages} onChange={setShowTradeAdvantages} />

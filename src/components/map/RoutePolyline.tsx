@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import L from "leaflet";
 import { Polyline, Tooltip, Marker } from "react-leaflet";
 import { EnrichedRoute } from "@/lib/costCalculator";
@@ -9,11 +10,14 @@ import { getBearing, getRouteColor, greatCircleArc, splitAtAntimeridian, unwrapL
 interface RoutePolylineProps {
   route: EnrichedRoute;
   isSelected: boolean;
+  isCompared: boolean;
   dimmed: boolean;
   onSelect: (routeId: string) => void;
+  onCompare: (routeId: string) => void;
 }
 
-export function RoutePolyline({ route, isSelected, dimmed, onSelect }: RoutePolylineProps) {
+export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect, onCompare }: RoutePolylineProps) {
+  const [hovered, setHovered] = useState(false);
   const rawArc = greatCircleArc(
     route.supplier.coordinates,
     route.destinationCoordinates,
@@ -41,12 +45,22 @@ export function RoutePolyline({ route, isSelected, dimmed, onSelect }: RoutePoly
   });
 
   const pathOptions = {
-    color: isSelected ? "#111827" : getRouteColor(route.routeClass),
-    weight: isSelected ? 2.5 : 1.5,
-    opacity: dimmed ? 0.12 : isSelected ? 0.95 : 0.45,
-    dashArray: isSelected ? "10 7" : "6 6",
+    color: isCompared
+      ? "#2563eb"
+      : isSelected
+        ? "#111827"
+        : getRouteColor(route.routeClass),
+    weight: hovered ? 3.5 : isCompared ? 3 : isSelected ? 2.5 : 1.5,
+    opacity: dimmed ? 0.12 : hovered ? 0.95 : isCompared ? 0.88 : isSelected ? 0.95 : 0.45,
+    dashArray: isCompared ? undefined : isSelected ? "10 7" : "6 6",
     lineCap: "round" as const,
     lineJoin: "round" as const,
+  };
+
+  const sharedHandlers = {
+    click: () => { onSelect(route.id); onCompare(route.id); },
+    mouseover: () => setHovered(true),
+    mouseout: () => setHovered(false),
   };
 
   return (
@@ -56,7 +70,7 @@ export function RoutePolyline({ route, isSelected, dimmed, onSelect }: RoutePoly
           key={idx}
           positions={seg}
           pathOptions={pathOptions}
-          eventHandlers={{ click: () => onSelect(route.id) }}
+          eventHandlers={sharedHandlers}
         >
           {/* Only attach the tooltip to the first segment */}
           {idx === 0 && (
@@ -71,7 +85,7 @@ export function RoutePolyline({ route, isSelected, dimmed, onSelect }: RoutePoly
         <Marker
           position={midPoint}
           icon={planeIcon}
-          eventHandlers={{ click: () => onSelect(route.id) }}
+          eventHandlers={sharedHandlers}
         />
       )}
     </>

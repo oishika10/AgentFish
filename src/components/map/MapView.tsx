@@ -13,8 +13,10 @@ import { UserLocationMarker } from "@/components/map/UserLocationMarker";
 interface MapViewProps {
   routes: EnrichedRoute[];
   selectedRouteId: string | null;
+  comparedRouteIds: string[];
   showTradeAdvantages: boolean;
   onSelectRoute: (routeId: string) => void;
+  onCompareRoute: (routeId: string) => void;
   userLocation: UserLocation;
 }
 
@@ -26,7 +28,7 @@ function MapCenterUpdater({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-export function MapView({ routes, selectedRouteId, showTradeAdvantages, onSelectRoute, userLocation }: MapViewProps) {
+export function MapView({ routes, selectedRouteId, comparedRouteIds, showTradeAdvantages, onSelectRoute, onCompareRoute, userLocation }: MapViewProps) {
   useEffect(() => {
     delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
     L.Icon.Default.mergeOptions({
@@ -58,8 +60,10 @@ export function MapView({ routes, selectedRouteId, showTradeAdvantages, onSelect
             key={route.id}
             route={route}
             isSelected={selectedRouteId === route.id}
+            isCompared={comparedRouteIds.includes(route.id)}
             dimmed={dimmed}
             onSelect={onSelectRoute}
+            onCompare={onCompareRoute}
           />
         );
       })}

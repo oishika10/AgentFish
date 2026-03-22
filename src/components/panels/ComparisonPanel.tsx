@@ -152,8 +152,8 @@ export function ComparisonPanel({ routes, priority, onPriorityChange, comparedRo
             <span className="text-2xl">📊</span>
             <p className="text-sm font-medium text-zinc-700">No routes selected</p>
             <p className="max-w-[200px] text-xs text-zinc-400">
-              Go to the Routes tab and click{" "}
-              <span className="font-medium text-zinc-600">+ Compare</span> on any route to add it here.
+              Click any route on the map, or click{" "}
+              <span className="font-medium text-zinc-600">+ Compare</span> in the Routes tab to add it here.
             </p>
           </div>
         ) : (
