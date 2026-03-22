@@ -46,6 +46,16 @@ export function RouteDetailPanel({ route, onOpenTimeline }: RouteDetailPanelProp
             <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} />
           </BarChart>
         </div>
+        {(route.costBreakdown.tariffRatePercent != null || route.costBreakdown.importTaxPercent != null) && (
+          <p className="text-xs text-zinc-600">
+            {route.costBreakdown.tariffRatePercent != null ? (
+              <span>Est. tariff rate: {formatPercent(route.costBreakdown.tariffRatePercent)}. </span>
+            ) : null}
+            {route.costBreakdown.importTaxPercent != null ? (
+              <span>Est. import tax rate: {formatPercent(route.costBreakdown.importTaxPercent)}.</span>
+            ) : null}
+          </p>
+        )}
         <p className="text-xs text-zinc-500">
           Duties adjusted from {formatCurrency(route.costBreakdown.dutiesBeforeAgreement)} to{" "}
           {formatCurrency(route.costBreakdown.dutiesAfterAgreement)} through trade benefits.
