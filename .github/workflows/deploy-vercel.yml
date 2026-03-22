@@ -1,0 +1,42 @@
+# Deploy production on every push to `main`.
+#
+# Required repository secrets (GitHub → Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN        — https://vercel.com/account/tokens
+#   VERCEL_ORG_ID       — Team ID (starts with team_…); Vercel → Team Settings, or `vercel whoami -t TOKEN`
+#   VERCEL_PROJECT_ID   — Project → Settings → General → Project ID (starts with prj_…)
+#
+# Optional: disable Vercel’s built-in Git integration for this repo if you only want Action deploys,
+# to avoid duplicate production builds.
+
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (fail fast before Vercel)
+        run: npm run build
+
+      - name: Deploy to Vercel
+        run: npx vercel@latest deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
