@@ -9,6 +9,7 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type SentencePart = { text: string; emphasized?: boolean };
@@ -114,13 +115,10 @@ function ScrollIndicator({
   return (
     <div
       ref={ref}
-      className="absolute bottom-10 flex flex-col items-center gap-2 text-white/30"
+      className="absolute bottom-10 flex flex-col items-center text-white/30"
     >
-      <span className="text-[10px] font-medium uppercase tracking-[0.25em]">Scroll</span>
-      <div className="flex flex-col items-center gap-0.5">
-        <div className="h-4 w-px bg-gradient-to-b from-transparent to-white/40" />
-        <div className="h-4 w-px bg-gradient-to-b from-white/40 to-transparent" />
-      </div>
+      <ChevronDown className="h-5 w-5 -mb-2.5" strokeWidth={1.5} />
+      <ChevronDown className="h-5 w-5" strokeWidth={1.5} />
     </div>
   );
 }
