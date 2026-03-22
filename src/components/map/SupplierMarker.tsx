@@ -1,6 +1,6 @@
 "use client";
 
-import { Marker, Popup } from "react-leaflet";
+import { CircleMarker, Popup } from "react-leaflet";
 import { EnrichedRoute } from "@/lib/costCalculator";
 
 interface SupplierMarkerProps {
@@ -10,7 +10,11 @@ interface SupplierMarkerProps {
 export function SupplierMarker({ route }: SupplierMarkerProps) {
   const { supplier } = route;
   return (
-    <Marker position={[supplier.coordinates.lat, supplier.coordinates.lng]}>
+    <CircleMarker
+      center={[supplier.coordinates.lat, supplier.coordinates.lng]}
+      radius={4}
+      pathOptions={{ color: "#475569", fillColor: "#94a3b8", fillOpacity: 0.9, weight: 1.5 }}
+    >
       <Popup>
         <div className="space-y-1 text-xs">
           <p className="font-semibold">{supplier.name}</p>
@@ -20,6 +24,6 @@ export function SupplierMarker({ route }: SupplierMarkerProps) {
           <p>Products: {supplier.products.join(", ")}</p>
         </div>
       </Popup>
-    </Marker>
+    </CircleMarker>
   );
 }
