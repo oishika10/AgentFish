@@ -5,7 +5,7 @@ import L from "leaflet";
 import { Polyline, Tooltip, Marker } from "react-leaflet";
 import { EnrichedRoute } from "@/lib/costCalculator";
 import { RouteTooltip } from "@/components/map/RouteTooltip";
-import { getBearing, getRouteColor, greatCircleArc, splitAtAntimeridian, unwrapLongitudes } from "@/lib/mapUtils";
+import { getBearing, getRouteColor, greatCircleArc, unwrapLongitudes } from "@/lib/mapUtils";
 
 interface RoutePolylineProps {
   route: EnrichedRoute;
@@ -23,18 +23,16 @@ export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect,
     route.destinationCoordinates,
   );
 
-  // Split at the antimeridian so every coordinate stays within [-180°, 180°]
-  // and all segments render on the same world copy in Leaflet.
-  const segments = splitAtAntimeridian(rawArc);
-
-  // Unwrap the raw arc (may exceed ±180°) only for the midpoint & bearing
-  // calculation so the plane icon sits at the true geographic midpoint.
-  const unwrapped = unwrapLongitudes(rawArc);
-  const midIndex = Math.floor(unwrapped.length / 2);
-  const midPoint = rawArc[midIndex]; // use canonical coordinates for the marker
-  const bearingFrom = unwrapped[Math.max(0, midIndex - 3)];
-  const bearingTo = unwrapped[Math.min(unwrapped.length - 1, midIndex + 3)];
-  const bearing = unwrapped.length > 1 ? getBearing(bearingFrom, bearingTo) : 0;
+  // Unwrap the arc so longitudes are continuous (may exceed ±180°).
+  // Leaflet handles out-of-range longitudes by mapping them to the correct
+  // world copy, so a trans-Pacific arc (e.g. 92°E → 237°) renders as a
+  // single connected line instead of two disconnected half-arcs.
+  const arc = unwrapLongitudes(rawArc);
+  const midIndex = Math.floor(arc.length / 2);
+  const midPoint = arc[midIndex];
+  const bearingFrom = arc[Math.max(0, midIndex - 3)];
+  const bearingTo = arc[Math.min(arc.length - 1, midIndex + 3)];
+  const bearing = arc.length > 1 ? getBearing(bearingFrom, bearingTo) : 0;
   const planeRotation = bearing - 90;
 
   const planeIcon = L.divIcon({
@@ -65,21 +63,15 @@ export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect,
 
   return (
     <>
-      {segments.map((seg, idx) => (
-        <Polyline
-          key={idx}
-          positions={seg}
-          pathOptions={pathOptions}
-          eventHandlers={sharedHandlers}
-        >
-          {/* Only attach the tooltip to the first segment */}
-          {idx === 0 && (
-            <Tooltip sticky>
-              <RouteTooltip route={route} />
-            </Tooltip>
-          )}
-        </Polyline>
-      ))}
+      <Polyline
+        positions={arc}
+        pathOptions={pathOptions}
+        eventHandlers={sharedHandlers}
+      >
+        <Tooltip sticky>
+          <RouteTooltip route={route} />
+        </Tooltip>
+      </Polyline>
 
       {!dimmed && midPoint && (
         <Marker
