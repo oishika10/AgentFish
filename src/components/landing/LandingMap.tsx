@@ -7,6 +7,7 @@ import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { HeatmapLayer } from "./HeatmapLayer";
 import { UserLocationMarker } from "@/components/map/UserLocationMarker";
 import { UserLocation } from "@/hooks/useGeolocation";
+import { getMapRasterConfig } from "@/lib/mapTiles";
 
 function MapCenterUpdater({ userLocation }: { userLocation: UserLocation | null | undefined }) {
   const map = useMap();
@@ -36,6 +37,8 @@ export function LandingMap({ userLocation }: LandingMapProps) {
     ? [userLocation.lat, userLocation.lng]
     : [30, 0];
 
+  const raster = getMapRasterConfig();
+
   return (
     <MapContainer
       center={center}
@@ -50,10 +53,7 @@ export function LandingMap({ userLocation }: LandingMapProps) {
       doubleClickZoom={true}
       touchZoom={true}
     >
-      <TileLayer
-        url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
-      />
+      <TileLayer url={raster.url} attribution={raster.attribution} />
       <MapCenterUpdater userLocation={userLocation} />
       <HeatmapLayer />
       {userLocation && (

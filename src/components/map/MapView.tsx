@@ -9,6 +9,7 @@ import { UserLocation } from "@/hooks/useGeolocation";
 import { RoutePolyline } from "@/components/map/RoutePolyline";
 import { SupplierMarker } from "@/components/map/SupplierMarker";
 import { UserLocationMarker } from "@/components/map/UserLocationMarker";
+import { getMapRasterConfig } from "@/lib/mapTiles";
 
 interface MapViewProps {
   routes: EnrichedRoute[];
@@ -28,7 +29,17 @@ function MapCenterUpdater({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-export function MapView({ routes, selectedRouteId, comparedRouteIds, showTradeAdvantages, onSelectRoute, onCompareRoute, userLocation }: MapViewProps) {
+export function MapView({
+  routes,
+  selectedRouteId,
+  comparedRouteIds,
+  showTradeAdvantages,
+  onSelectRoute,
+  onCompareRoute,
+  userLocation,
+}: MapViewProps) {
+  const raster = getMapRasterConfig();
+
   useEffect(() => {
     delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
     L.Icon.Default.mergeOptions({
@@ -45,10 +56,7 @@ export function MapView({ routes, selectedRouteId, comparedRouteIds, showTradeAd
       style={{ height: "100%", width: "100%" }}
       zoomControl
     >
-      <TileLayer
-        url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
+      <TileLayer url={raster.url} attribution={raster.attribution} />
 
       <MapCenterUpdater lat={userLocation.lat} lng={userLocation.lng} />
       <UserLocationMarker lat={userLocation.lat} lng={userLocation.lng} label={userLocation.label} />
