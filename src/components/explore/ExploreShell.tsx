@@ -2,8 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Filter, LocateFixed } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Filter, LocateFixed, Maximize2, Minimize2 } from "lucide-react";
 import { routes } from "@/data/routes";
 import { suppliers } from "@/data/suppliers";
 import { complianceRules } from "@/data/complianceRules";
@@ -51,6 +51,29 @@ export function ExploreShell() {
   const [geminiRoutes, setGeminiRoutes] = useState<EnrichedRoute[] | null>(null);
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiError, setGeminiError] = useState<GeminiErrorBanner | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(380);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  const onDragStart = useCallback((e: React.PointerEvent) => {
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [sidebarWidth]);
+
+  const onDragMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    const delta = e.clientX - dragStartX.current;
+    const next = Math.min(Math.max(dragStartWidth.current + delta, 280), 900);
+    setSidebarWidth(next);
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    isDragging.current = false;
+  }, []);
 
   const toggleCompare = useCallback((id: string) => {
     setComparedRouteIds((prev) =>
@@ -165,18 +188,37 @@ export function ExploreShell() {
   return (
     <>
       <div className="h-screen bg-zinc-50 p-4">
-        <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">
-          <aside className="flex h-full flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
-            <Tabs
-              items={[
-                { id: "overview", label: "Overview" },
-                { id: "routes", label: "Routes" },
-                { id: "compare", label: "Compare" },
-                { id: "filters", label: "Filters" },
-              ]}
-              active={tab}
-              onChange={(id) => setTab(id as TabId)}
-            />
+        <div className="flex h-full gap-0">
+          <aside
+            className="flex h-full flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm"
+            style={{ width: sidebarExpanded ? "100%" : sidebarWidth, flexShrink: 0 }}
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Tabs
+                  items={[
+                    { id: "overview", label: "Overview" },
+                    { id: "routes", label: "Routes" },
+                    { id: "compare", label: "Compare" },
+                    { id: "filters", label: "Filters" },
+                  ]}
+                  active={tab}
+                  onChange={(id) => setTab(id as TabId)}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setSidebarExpanded((v) => !v)}
+                title={sidebarExpanded ? "Collapse panel" : "Expand to full page"}
+                className="shrink-0 rounded-lg border border-zinc-200 p-1.5 text-zinc-400 transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700"
+              >
+                {sidebarExpanded ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </button>
+            </div>
 
             {userType && product ? (
               <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-xs text-zinc-700">
@@ -337,7 +379,22 @@ export function ExploreShell() {
             </div>
           </aside>
 
-          <section className="relative h-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+          {!sidebarExpanded && (
+            <>
+              {/* Drag handle */}
+              <div
+                role="separator"
+                aria-label="Resize panel"
+                onPointerDown={onDragStart}
+                onPointerMove={onDragMove}
+                onPointerUp={onDragEnd}
+                onPointerCancel={onDragEnd}
+                className="group relative mx-1 flex w-2 shrink-0 cursor-col-resize items-center justify-center"
+              >
+                <div className="h-12 w-1 rounded-full bg-zinc-200 transition-colors group-hover:bg-zinc-400 group-active:bg-zinc-500" />
+              </div>
+
+          <section className="relative h-full min-w-0 flex-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
             <DynamicMapView
               routes={routesForMap}
               selectedRouteId={selectedRouteId}
@@ -379,6 +436,8 @@ export function ExploreShell() {
               </div>
             </div>
           </section>
+            </>
+          )}
         </div>
       </div>
 
