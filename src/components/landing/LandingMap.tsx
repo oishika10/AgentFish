@@ -3,10 +3,20 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { HeatmapLayer } from "./HeatmapLayer";
 import { UserLocationMarker } from "@/components/map/UserLocationMarker";
 import { UserLocation } from "@/hooks/useGeolocation";
+
+function MapCenterUpdater({ userLocation }: { userLocation: UserLocation | null | undefined }) {
+  const map = useMap();
+  useEffect(() => {
+    if (userLocation) {
+      map.flyTo([userLocation.lat, userLocation.lng], 5, { animate: true, duration: 1.5 });
+    }
+  }, [userLocation, map]);
+  return null;
+}
 
 interface LandingMapProps {
   userLocation?: UserLocation | null;
@@ -44,6 +54,7 @@ export function LandingMap({ userLocation }: LandingMapProps) {
         url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
         attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
       />
+      <MapCenterUpdater userLocation={userLocation} />
       <HeatmapLayer />
       {userLocation && (
         <UserLocationMarker lat={userLocation.lat} lng={userLocation.lng} label={userLocation.label} />
