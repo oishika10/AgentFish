@@ -7,10 +7,19 @@
   --foreground: #0f172a;
 }
 
+html {
+  scroll-behavior: auto;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Hide scrollbar on the scrolly intro container */
+.scrolly-hidden-bar::-webkit-scrollbar {
+  display: none;
 }
 
 @layer utilities {

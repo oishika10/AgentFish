@@ -1,5 +1,5 @@
-import { HeroSection } from "@/components/landing/HeroSection";
+import { ScrollyIntro } from "@/components/landing/ScrollyIntro";
 
 export default function Home() {
-  return <HeroSection />;
+  return <ScrollyIntro />;
 }
