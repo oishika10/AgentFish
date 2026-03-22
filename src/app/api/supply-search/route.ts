@@ -13,7 +13,7 @@ import { tradeAgreements } from "@/data/tradeAgreements";
 export const runtime = "nodejs";
 
 function supplySearchLog(...args: unknown[]) {
-  if (process.env.NODE_ENV !== "development" && process.env.LOG_SUPPLY_SEARCH !== "true") {
+  if (process.env.LOG_SUPPLY_SEARCH !== "true") {
     return;
   }
   console.log("[supply-search]", ...args);
