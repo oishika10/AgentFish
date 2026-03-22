@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   buildSuppliersAndRoutesFromGemini,
   extractJsonFromModelText,
+  extractMarketOverviewMarkdown,
   normalizeGeminiSupply,
 } from "@/lib/geminiSupply";
 import { mapGeminiFailure } from "@/lib/supplySearchErrors";
@@ -19,10 +20,12 @@ function supplySearchLog(...args: unknown[]) {
   console.log("[supply-search]", ...args);
 }
 
-const SYSTEM_INSTRUCTION = `You are a trade and procurement analyst. The user describes their role and a product they want to import.
+const SYSTEM_INSTRUCTION = `You are a trade and procurement analyst and market intelligence assistant. The user describes their role and a product they want to import.
 Assume the import destination is the Toronto, Canada area unless the user clearly specifies another destination.
-Return ONLY valid JSON (no markdown) with this exact structure:
+
+Return ONLY valid JSON (no markdown outside the marketOverviewMarkdown string) with this exact top-level structure:
 {
+  "marketOverviewMarkdown": "string",
   "destinationLabel": "string (e.g. Toronto Distribution Hub)",
   "destinationCoordinates": { "lat": number, "lng": number },
   "suppliers": [
@@ -54,7 +57,14 @@ Return ONLY valid JSON (no markdown) with this exact structure:
   ]
 }
 
-Rules:
+marketOverviewMarkdown rules:
+- Write a market landscape overview in Markdown for the same buyer role and product.
+- Use ## for section headings. Cover supply regions, demand/pricing (qualitative), trade & compliance context, risks & opportunities.
+- Align with importing into Canada (Greater Toronto) unless the user implies otherwise.
+- End with a one-line disclaimer that this is directional intelligence, not financial or legal advice.
+- Escape any double quotes inside the string as \\" if needed so the JSON remains valid.
+
+Supplier rules:
 - Provide 3 to 6 plausible supplier options in different countries relevant to the product.
 - Coordinates must be realistic for the given city.
 - tariffRatePercent: estimated applied tariff rate for this product lane (percentage).
@@ -102,13 +112,14 @@ export async function POST(request: Request) {
       systemInstruction: SYSTEM_INSTRUCTION,
     });
 
-    const prompt = `User role: ${userType}\nProduct / category: ${product}\n\nProduce the JSON response.`;
+    const prompt = `User role: ${userType}\nProduct / category: ${product}\n\nProduce the single JSON object (suppliers + marketOverviewMarkdown) as specified.`;
 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.35,
         responseMimeType: "application/json",
+        maxOutputTokens: 8192,
       },
     });
 
@@ -118,13 +129,20 @@ export async function POST(request: Request) {
     const parsed = extractJsonFromModelText(text);
     supplySearchLog("parsed JSON", parsed);
 
+    const marketOverview = extractMarketOverviewMarkdown(parsed);
+    supplySearchLog("market overview length", marketOverview.length);
+
     const normalized = normalizeGeminiSupply(parsed);
     supplySearchLog("normalized supply", normalized);
 
     if (!normalized) {
       supplySearchLog("normalize failed — raw parse was", parsed);
       return NextResponse.json(
-        { error: "Could not parse supplier data from the model response.", code: "UNKNOWN" },
+        {
+          error: "Could not parse supplier data from the model response.",
+          code: "UNKNOWN",
+          marketOverview: marketOverview || undefined,
+        },
         { status: 502 },
       );
     }
@@ -135,7 +153,7 @@ export async function POST(request: Request) {
     supplySearchLog("API response (enriched routes)", JSON.stringify(enriched, null, 2));
     supplySearchLog("summary", { routeCount: enriched.length, routeIds: enriched.map((r) => r.id) });
 
-    return NextResponse.json({ enriched });
+    return NextResponse.json({ enriched, marketOverview });
   } catch (error) {
     const raw = error instanceof Error ? error.message : String(error);
     supplySearchLog("Gemini / handler error (raw)", raw);

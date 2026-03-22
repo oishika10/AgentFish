@@ -51,6 +51,7 @@ export function ExploreShell() {
   const [geminiRoutes, setGeminiRoutes] = useState<EnrichedRoute[] | null>(null);
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiError, setGeminiError] = useState<GeminiErrorBanner | null>(null);
+  const [marketOverview, setMarketOverview] = useState<string | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(380);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const isDragging = useRef(false);
@@ -93,6 +94,7 @@ export function ExploreShell() {
       setGeminiRoutes(null);
       setGeminiError(null);
       setGeminiLoading(false);
+      setMarketOverview(null);
       setSelectedRouteId(routes[0]?.id ?? null);
       return;
     }
@@ -100,6 +102,7 @@ export function ExploreShell() {
     const controller = new AbortController();
     setGeminiLoading(true);
     setGeminiError(null);
+    setMarketOverview(null);
 
     fetch("/api/supply-search", {
       method: "POST",
@@ -110,6 +113,7 @@ export function ExploreShell() {
       .then(async (response) => {
         const payload = (await response.json()) as {
           enriched?: EnrichedRoute[];
+          marketOverview?: string;
           error?: string;
           code?: string;
         };
@@ -122,9 +126,16 @@ export function ExploreShell() {
             message: payload.error ?? "Supplier search failed.",
             code,
           });
+          setMarketOverview(
+            typeof payload.marketOverview === "string" ? payload.marketOverview : null,
+          );
           setSelectedRouteId(routes[0]?.id ?? null);
           return;
         }
+
+        setMarketOverview(
+          typeof payload.marketOverview === "string" ? payload.marketOverview : "",
+        );
 
         const next = Array.isArray(payload.enriched) ? payload.enriched : [];
         if (next.length) {
@@ -145,6 +156,7 @@ export function ExploreShell() {
           return;
         }
         setGeminiRoutes(null);
+        setMarketOverview(null);
         setGeminiError(clientFriendlySupplyError(error));
         setSelectedRouteId(routes[0]?.id ?? null);
       })
@@ -230,7 +242,7 @@ export function ExploreShell() {
                   <span className="text-zinc-500">Product:</span> {product}
                 </p>
                 {geminiLoading ? (
-                  <p className="text-blue-700">Finding suppliers and trade estimates with Gemini…</p>
+                  <p className="text-blue-700">Loading suppliers and market overview (single Gemini request)…</p>
                 ) : null}
                 {usingGemini ? (
                   <p className="text-emerald-800">
@@ -267,7 +279,9 @@ export function ExploreShell() {
                 <MarketOverviewPanel
                   userType={userType}
                   product={product}
-                  tabActive={tab === "overview"}
+                  markdown={marketOverview}
+                  loading={geminiLoading}
+                  error={geminiError}
                 />
               </div>
 

@@ -1,108 +1,74 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { DashboardLoader } from "@/components/panels/DashboardLoader";
-import { clientFriendlySupplyError, titleForSupplyErrorCode } from "@/lib/supplySearchErrors";
+
+type ErrorBanner = { title: string; message: string };
 
 interface MarketOverviewPanelProps {
   userType: string;
   product: string;
-  tabActive: boolean;
+  /** null = not loaded yet; string = content (may be empty) */
+  markdown: string | null;
+  loading: boolean;
+  error: ErrorBanner | null;
 }
 
-export function MarketOverviewPanel({ userType, product, tabActive }: MarketOverviewPanelProps) {
-  const [text, setText] = useState("");
-  const [streaming, setStreaming] = useState(false);
-  const [error, setError] = useState<{ title: string; message: string } | null>(null);
-  const cacheRef = useRef<Map<string, string>>(new Map());
+const STREAM_CHARS_PER_TICK = 6;
+const STREAM_INTERVAL_MS = 18;
 
-  const key = `${userType}|${product}`;
+export function MarketOverviewPanel({
+  userType,
+  product,
+  markdown,
+  loading,
+  error,
+}: MarketOverviewPanelProps) {
+  const [streamedText, setStreamedText] = useState("");
 
   useEffect(() => {
-    if (!userType || !product || !tabActive) {
+    if (loading || error) {
+      setStreamedText("");
+      return;
+    }
+    if (markdown === null || markdown.length === 0) {
+      setStreamedText("");
       return;
     }
 
-    const cached = cacheRef.current.get(key);
-    if (cached !== undefined) {
-      setText(cached);
-      setStreaming(false);
-      setError(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    setText("");
-    setError(null);
-    setStreaming(true);
-
-    void (async () => {
-      try {
-        const response = await fetch("/api/market-overview", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userType, product }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const payload = (await response.json()) as { error?: string; code?: string };
-          const code = payload.code ?? "UNKNOWN";
-          setError({
-            title: titleForSupplyErrorCode(code),
-            message: payload.error ?? "Could not load market overview.",
-          });
-          setStreaming(false);
-          return;
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          setStreaming(false);
-          return;
-        }
-
-        const decoder = new TextDecoder();
-        let accumulated = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-          accumulated += decoder.decode(value, { stream: true });
-          setText(accumulated);
-        }
-
-        cacheRef.current.set(key, accumulated);
-        setStreaming(false);
-      } catch (e: unknown) {
-        if (e instanceof Error && e.name === "AbortError") {
-          return;
-        }
-        const f = clientFriendlySupplyError(e);
-        setError({ title: f.title, message: f.message });
-        setStreaming(false);
+    setStreamedText("");
+    let index = 0;
+    const id = setInterval(() => {
+      index = Math.min(index + STREAM_CHARS_PER_TICK, markdown.length);
+      setStreamedText(markdown.slice(0, index));
+      if (index >= markdown.length) {
+        clearInterval(id);
       }
-    })();
+    }, STREAM_INTERVAL_MS);
 
-    return () => {
-      controller.abort();
-    };
-  }, [userType, product, tabActive, key]);
+    return () => clearInterval(id);
+  }, [markdown, loading, error]);
 
   if (!userType || !product) {
     return (
       <p className="text-sm leading-relaxed text-zinc-600">
-        Start from the home page with your role and product to generate a streamed market landscape overview.
+        Start from the home page with your role and product to generate a market landscape overview.
       </p>
     );
   }
 
+  const waitingOnApi = loading && markdown === null;
+  const streamingCopy =
+    !error &&
+    markdown !== null &&
+    markdown.length > 0 &&
+    streamedText.length < markdown.length;
+  const showDashboardLoader = waitingOnApi || streamingCopy;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {streaming ? <DashboardLoader /> : null}
+      {showDashboardLoader ? <DashboardLoader /> : null}
 
       {error ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
@@ -111,7 +77,7 @@ export function MarketOverviewPanel({ userType, product, tabActive }: MarketOver
         </div>
       ) : null}
 
-      {text ? (
+      {!error && streamedText.length > 0 ? (
         <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 text-zinc-800">
           <ReactMarkdown
             components={{
@@ -128,9 +94,13 @@ export function MarketOverviewPanel({ userType, product, tabActive }: MarketOver
               strong: ({ children }) => <strong className="font-semibold text-zinc-900">{children}</strong>,
             }}
           >
-            {text}
+            {streamedText}
           </ReactMarkdown>
         </div>
+      ) : null}
+
+      {!loading && !error && markdown === "" ? (
+        <p className="text-sm text-zinc-500">No market overview text was returned for this search.</p>
       ) : null}
     </div>
   );

@@ -224,6 +224,13 @@ export function buildSuppliersAndRoutesFromGemini(data: GeminiSupplySearchRaw): 
   return { suppliers, routes };
 }
 
+/** Reads `marketOverviewMarkdown` from the combined Gemini JSON (same response as suppliers). */
+export function extractMarketOverviewMarkdown(raw: unknown): string {
+  if (!raw || typeof raw !== "object") return "";
+  const m = (raw as Record<string, unknown>).marketOverviewMarkdown;
+  return typeof m === "string" ? m.trim() : "";
+}
+
 export function extractJsonFromModelText(text: string): unknown {
   const trimmed = text.trim();
   const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
