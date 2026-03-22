@@ -15,14 +15,17 @@ interface TabsProps {
 
 export function Tabs({ items, active, onChange }: TabsProps) {
   return (
-    <div className="grid grid-cols-3 gap-1 rounded-lg bg-zinc-100 p-1">
+    <div
+      className="grid gap-1 rounded-lg bg-zinc-100 p-1"
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+    >
       {items.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
           className={cn(
-            "rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+            "rounded-md px-1.5 py-1.5 text-xs font-medium transition-colors sm:px-2 sm:text-sm",
             active === item.id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-600 hover:text-zinc-900",
           )}
         >

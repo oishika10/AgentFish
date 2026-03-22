@@ -21,15 +21,17 @@ import { RouteDetailPanel } from "@/components/panels/RouteDetailPanel";
 import { TradeInsightsOverlay } from "@/components/panels/TradeInsightsOverlay";
 import { RouteTimelineModal } from "@/components/modals/RouteTimelineModal";
 import { ScenarioToggle } from "@/components/modals/ScenarioToggle";
+import { MarketOverviewPanel } from "@/components/panels/MarketOverviewPanel";
 import { OptimizeFor } from "@/types";
 import { clientFriendlySupplyError, titleForSupplyErrorCode } from "@/lib/supplySearchErrors";
+import { cn } from "@/lib/cn";
 
 const DynamicMapView = dynamic(() => import("@/components/map/MapView").then((mod) => mod.MapView), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-zinc-100" />,
 });
 
-type TabId = "routes" | "compare" | "filters";
+type TabId = "overview" | "routes" | "compare" | "filters";
 
 type GeminiErrorBanner = { title: string; message: string; code: string };
 
@@ -38,7 +40,7 @@ export function ExploreShell() {
   const userType = searchParams.get("userType")?.trim() ?? "";
   const product = searchParams.get("product")?.trim() ?? "";
 
-  const [tab, setTab] = useState<TabId>("routes");
+  const [tab, setTab] = useState<TabId>("overview");
   const [priority, setPriority] = useState<OptimizeFor>("cost");
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(routes[0]?.id ?? null);
   const [comparedRouteIds, setComparedRouteIds] = useState<string[]>([]);
@@ -167,6 +169,7 @@ export function ExploreShell() {
           <aside className="flex h-full flex-col gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
             <Tabs
               items={[
+                { id: "overview", label: "Overview" },
                 { id: "routes", label: "Routes" },
                 { id: "compare", label: "Compare" },
                 { id: "filters", label: "Filters" },
@@ -211,111 +214,127 @@ export function ExploreShell() {
               </div>
             ) : null}
 
-            {tab === "routes" ? (
-              <>
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-                  <AIRecommendation route={bestRoute} />
-                  <ScenarioToggle />
-                  {filteredRoutes.map((routeItem) => (
-                    <Card
-                      key={routeItem.id}
-                      className={`cursor-pointer p-3 transition-all ${
-                        selectedRouteId === routeItem.id
-                          ? "border-zinc-400 bg-zinc-50 shadow-md"
-                          : "hover:border-zinc-300 hover:bg-zinc-50"
-                      }`}
-                      onClick={() => setSelectedRouteId(routeItem.id)}
-                    >
-                      <div className="mb-2.5 flex items-start justify-between gap-2">
-                        <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-zinc-900">
-                              {routeItem.supplier.city}
-                            </p>
-                            <p className="text-[11px] text-zinc-400">{routeItem.supplier.country}</p>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-0.5 px-1">
-                            <span className="h-px w-4 bg-zinc-300" />
-                            <span className="text-sm text-zinc-400">✈</span>
-                            <span className="h-px w-4 bg-zinc-300" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-zinc-900">
-                              {geoLoading ? "Locating…" : destinationCity}
-                            </p>
-                            <p className="text-[11px] text-zinc-400">
-                              {geoLoading ? "" : destinationCountry}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleCompare(routeItem.id);
-                              setTab("compare");
-                            }}
-                            title={comparedRouteIds.includes(routeItem.id) ? "Remove from comparison" : "Add to comparison"}
-                            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
-                              comparedRouteIds.includes(routeItem.id)
-                                ? "border-blue-300 bg-blue-50 text-blue-700"
-                                : "border-zinc-200 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600"
-                            }`}
-                          >
-                            {comparedRouteIds.includes(routeItem.id) ? "✓ Compare" : "+ Compare"}
-                          </button>
-                          <Badge label={routeItem.tradeAgreement?.name ?? "No FTA"} tone="warning" />
-                        </div>
-                      </div>
-                      <p className="mb-2.5 text-xs text-zinc-500">{routeItem.supplier.name}</p>
-                      <div className="grid grid-cols-3 gap-1.5 text-xs">
-                        <div className="rounded-lg bg-zinc-100 px-2 py-1.5">
-                          <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">Cost</p>
-                          <p className="font-semibold text-zinc-800">{formatCurrency(routeItem.totalLandedCost)}</p>
-                        </div>
-                        <div className="rounded-lg bg-zinc-100 px-2 py-1.5">
-                          <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">Time</p>
-                          <p className="font-semibold text-zinc-800">{formatHours(routeItem.totalDurationHours)}</p>
-                        </div>
-                        <div className="rounded-lg bg-zinc-100 px-2 py-1.5">
-                          <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">CO₂</p>
-                          <p className="font-semibold text-zinc-800">{formatEmissions(routeItem.totalEmissionsKg)}</p>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-                {selectedRoute && (
-                  <div className="max-h-[42%] shrink-0 overflow-y-auto border-t border-zinc-100 pt-2 pr-1">
-                    <RouteDetailPanel route={selectedRoute} onOpenTimeline={() => setTimelineOpen(true)} />
-                  </div>
+            <div className="h-full space-y-3 overflow-y-auto pr-1">
+              <div
+                className={cn(
+                  "min-h-0 flex-1 flex-col",
+                  tab !== "overview" && "hidden",
                 )}
-              </>
-            ) : null}
-
-            {tab === "compare" ? (
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <ComparisonPanel
-                  routes={filteredRoutes}
-                  priority={priority}
-                  onPriorityChange={setPriority}
-                  comparedRouteIds={comparedRouteIds}
-                  onToggleCompare={toggleCompare}
+                aria-hidden={tab !== "overview"}
+              >
+                <MarketOverviewPanel
+                  userType={userType}
+                  product={product}
+                  tabActive={tab === "overview"}
                 />
               </div>
-            ) : null}
 
-            {tab === "filters" ? (
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <FiltersPanel
-                  onlyTradeRoutes={onlyTradeRoutes}
-                  onOnlyTradeRoutesChange={setOnlyTradeRoutes}
-                  minimizeImportTax={minimizeImportTax}
-                  onMinimizeImportTaxChange={setMinimizeImportTax}
-                />
-              </div>
-            ) : null}
+              {tab === "routes" ? (
+                <>
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                    <AIRecommendation route={bestRoute} />
+                    <ScenarioToggle />
+                    {filteredRoutes.map((routeItem) => (
+                      <Card
+                        key={routeItem.id}
+                        className={`cursor-pointer p-3 transition-all ${
+                          selectedRouteId === routeItem.id
+                            ? "border-zinc-400 bg-zinc-50 shadow-md"
+                            : "hover:border-zinc-300 hover:bg-zinc-50"
+                        }`}
+                        onClick={() => setSelectedRouteId(routeItem.id)}
+                      >
+                        <div className="mb-2.5 flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-semibold text-zinc-900">
+                                {routeItem.supplier.city}
+                              </p>
+                              <p className="text-[11px] text-zinc-400">{routeItem.supplier.country}</p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-0.5 px-1">
+                              <span className="h-px w-4 bg-zinc-300" />
+                              <span className="text-sm text-zinc-400">✈</span>
+                              <span className="h-px w-4 bg-zinc-300" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-semibold text-zinc-900">
+                                {geoLoading ? "Locating…" : destinationCity}
+                              </p>
+                              <p className="text-[11px] text-zinc-400">
+                                {geoLoading ? "" : destinationCountry}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCompare(routeItem.id);
+                                setTab("compare");
+                              }}
+                              title={comparedRouteIds.includes(routeItem.id) ? "Remove from comparison" : "Add to comparison"}
+                              className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                                comparedRouteIds.includes(routeItem.id)
+                                  ? "border-blue-300 bg-blue-50 text-blue-700"
+                                  : "border-zinc-200 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600"
+                              }`}
+                            >
+                              {comparedRouteIds.includes(routeItem.id) ? "✓ Compare" : "+ Compare"}
+                            </button>
+                            <Badge label={routeItem.tradeAgreement?.name ?? "No FTA"} tone="warning" />
+                          </div>
+                        </div>
+                        <p className="mb-2.5 text-xs text-zinc-500">{routeItem.supplier.name}</p>
+                        <div className="grid grid-cols-3 gap-1.5 text-xs">
+                          <div className="rounded-lg bg-zinc-100 px-2 py-1.5">
+                            <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">Cost</p>
+                            <p className="font-semibold text-zinc-800">{formatCurrency(routeItem.totalLandedCost)}</p>
+                          </div>
+                          <div className="rounded-lg bg-zinc-100 px-2 py-1.5">
+                            <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">Time</p>
+                            <p className="font-semibold text-zinc-800">{formatHours(routeItem.totalDurationHours)}</p>
+                          </div>
+                          <div className="rounded-lg bg-zinc-100 px-2 py-1.5">
+                            <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">CO₂</p>
+                            <p className="font-semibold text-zinc-800">{formatEmissions(routeItem.totalEmissionsKg)}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                  {selectedRoute && (
+                    <div className="max-h-[42%] shrink-0 overflow-y-auto border-t border-zinc-100 pt-2 pr-1">
+                      <RouteDetailPanel route={selectedRoute} onOpenTimeline={() => setTimelineOpen(true)} />
+                    </div>
+                  )}
+                </>
+              ) : null}
+
+              {tab === "compare" ? (
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                  <ComparisonPanel
+                    routes={filteredRoutes}
+                    priority={priority}
+                    onPriorityChange={setPriority}
+                    comparedRouteIds={comparedRouteIds}
+                    onToggleCompare={toggleCompare}
+                  />
+                </div>
+              ) : null}
+
+              {tab === "filters" ? (
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                  <FiltersPanel
+                    onlyTradeRoutes={onlyTradeRoutes}
+                    onOnlyTradeRoutesChange={setOnlyTradeRoutes}
+                    minimizeImportTax={minimizeImportTax}
+                    onMinimizeImportTaxChange={setMinimizeImportTax}
+                  />
+                </div>
+              ) : null}
+            </div>
           </aside>
 
           <section className="relative h-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
