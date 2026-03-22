@@ -9,9 +9,9 @@ export interface UserLocation {
 }
 
 const FALLBACK: UserLocation = {
-  lat: 43.6532,
-  lng: -79.3832,
-  label: "Toronto, CA",
+  lat: 49.2827,
+  lng: -123.1207,
+  label: "Vancouver, BC",
 };
 
 export function useGeolocation() {
