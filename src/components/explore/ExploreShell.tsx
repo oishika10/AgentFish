@@ -20,7 +20,7 @@ import { FiltersPanel } from "@/components/panels/FiltersPanel";
 import { RouteDetailPanel } from "@/components/panels/RouteDetailPanel";
 import { TradeInsightsOverlay } from "@/components/panels/TradeInsightsOverlay";
 import { RouteTimelineModal } from "@/components/modals/RouteTimelineModal";
-import { ScenarioToggle } from "@/components/modals/ScenarioToggle";
+import { Scenario, ScenarioToggle } from "@/components/modals/ScenarioToggle";
 import { MarketOverviewPanel } from "@/components/panels/MarketOverviewPanel";
 import { OptimizeFor } from "@/types";
 import { clientFriendlySupplyError, titleForSupplyErrorCode } from "@/lib/supplySearchErrors";
@@ -46,11 +46,13 @@ export function ExploreShell() {
   const [comparedRouteIds, setComparedRouteIds] = useState<string[]>([]);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [showTradeAdvantages, setShowTradeAdvantages] = useState(true);
+  const [tradeOverlayVisible, setTradeOverlayVisible] = useState(true);
   const [onlyTradeRoutes, setOnlyTradeRoutes] = useState(false);
   const [minimizeImportTax, setMinimizeImportTax] = useState(false);
   const [geminiRoutes, setGeminiRoutes] = useState<EnrichedRoute[] | null>(null);
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiError, setGeminiError] = useState<GeminiErrorBanner | null>(null);
+  const [scenario, setScenario] = useState<Scenario>("Baseline");
   const [sidebarWidth, setSidebarWidth] = useState(380);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const isDragging = useRef(false);
@@ -159,12 +161,35 @@ export function ExploreShell() {
   const usingGemini = Boolean(geminiRoutes && geminiRoutes.length > 0);
 
   const filteredRoutes = useMemo(() => {
-    return enriched.filter((routeItem) => {
+    let result = enriched.filter((routeItem) => {
       if (onlyTradeRoutes && !routeItem.tradeAgreementId) return false;
       if (minimizeImportTax && routeItem.costBreakdown.importTax > 1400) return false;
       return true;
     });
-  }, [enriched, minimizeImportTax, onlyTradeRoutes]);
+
+    if (scenario === "Switch supplier country") {
+      // Exclude routes from the primary supplier's country (the currently selected or first route)
+      const primaryCountry =
+        enriched.find((r) => r.id === selectedRouteId)?.supplier.country ??
+        enriched[0]?.supplier.country;
+      if (primaryCountry) {
+        result = result.filter((r) => r.supplier.country !== primaryCountry);
+      }
+    } else if (scenario === "Tariffs +10%" || scenario === "Tariffs -10%") {
+      const multiplier = scenario === "Tariffs +10%" ? 1.1 : 0.9;
+      result = result.map((r) => {
+        const newImportTax = Math.round(r.costBreakdown.importTax * multiplier);
+        const taxDelta = newImportTax - r.costBreakdown.importTax;
+        return {
+          ...r,
+          costBreakdown: { ...r.costBreakdown, importTax: newImportTax },
+          totalLandedCost: Math.round(r.totalLandedCost + taxDelta),
+        };
+      });
+    }
+
+    return result;
+  }, [enriched, minimizeImportTax, onlyTradeRoutes, scenario, selectedRouteId]);
 
   // Override destination coordinates with the user's actual location
   const routesForMap = useMemo(
@@ -275,7 +300,7 @@ export function ExploreShell() {
                 <>
                   <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                     <AIRecommendation route={bestRoute} />
-                    <ScenarioToggle />
+                    <ScenarioToggle scenario={scenario} onScenarioChange={setScenario} />
                     {filteredRoutes.map((routeItem) => (
                       <Card
                         key={routeItem.id}
@@ -404,7 +429,9 @@ export function ExploreShell() {
               onCompareRoute={toggleCompare}
               userLocation={location}
             />
-            <TradeInsightsOverlay showTradeAdvantages={showTradeAdvantages} onChange={setShowTradeAdvantages} />
+            {tradeOverlayVisible && (
+              <TradeInsightsOverlay showTradeAdvantages={showTradeAdvantages} onChange={setShowTradeAdvantages} onDismiss={() => setTradeOverlayVisible(false)} />
+            )}
 
             <div className="pointer-events-none absolute left-4 top-4 z-[500]">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white/95 px-3 py-1.5 text-xs shadow-sm backdrop-blur-sm">

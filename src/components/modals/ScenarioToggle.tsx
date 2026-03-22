@@ -1,29 +1,32 @@
 "use client";
 
-import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 
-const scenarios = ["Baseline", "Switch supplier country", "Tariffs +10%", "Tariffs -10%"] as const;
+export const SCENARIOS = ["Baseline", "Switch supplier country", "Tariffs +10%", "Tariffs -10%"] as const;
+export type Scenario = (typeof SCENARIOS)[number];
 
-export function ScenarioToggle() {
-  const [active, setActive] = useState<(typeof scenarios)[number]>("Baseline");
+interface ScenarioToggleProps {
+  scenario: Scenario;
+  onScenarioChange: (scenario: Scenario) => void;
+}
 
+export function ScenarioToggle({ scenario, onScenarioChange }: ScenarioToggleProps) {
   return (
     <Card className="p-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Scenario</p>
       <div className="flex flex-wrap gap-2">
-        {scenarios.map((scenario) => (
+        {SCENARIOS.map((s) => (
           <button
-            key={scenario}
-            onClick={() => setActive(scenario)}
+            key={s}
+            onClick={() => onScenarioChange(s)}
             className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-              active === scenario
+              scenario === s
                 ? "border-blue-300 bg-blue-50 text-blue-700"
                 : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
             }`}
             type="button"
           >
-            {scenario}
+            {s}
           </button>
         ))}
       </div>
