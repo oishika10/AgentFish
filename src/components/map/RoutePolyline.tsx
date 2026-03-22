@@ -4,7 +4,7 @@ import L from "leaflet";
 import { Polyline, Tooltip, Marker } from "react-leaflet";
 import { EnrichedRoute } from "@/lib/costCalculator";
 import { RouteTooltip } from "@/components/map/RouteTooltip";
-import { getBearing, getRouteColor, greatCircleArc, splitAtAntimeridian } from "@/lib/mapUtils";
+import { getBearing, getRouteColor, greatCircleArc, splitAtAntimeridian, unwrapLongitudes } from "@/lib/mapUtils";
 
 interface RoutePolylineProps {
   route: EnrichedRoute;
@@ -14,21 +14,23 @@ interface RoutePolylineProps {
 }
 
 export function RoutePolyline({ route, isSelected, dimmed, onSelect }: RoutePolylineProps) {
-  const arcPositions = greatCircleArc(
+  const rawArc = greatCircleArc(
     route.supplier.coordinates,
     route.destinationCoordinates,
   );
 
-  // Split the arc wherever it crosses ±180° so Leaflet doesn't draw a
-  // line all the way across the map (antimeridian crossing issue).
-  const segments = splitAtAntimeridian(arcPositions);
+  // Split at the antimeridian so every coordinate stays within [-180°, 180°]
+  // and all segments render on the same world copy in Leaflet.
+  const segments = splitAtAntimeridian(rawArc);
 
-  // Airplane marker — use the true midpoint of the full (unsplit) arc
-  const midIndex = Math.floor(arcPositions.length / 2);
-  const midPoint = arcPositions[midIndex];
-  const bearingFrom = arcPositions[Math.max(0, midIndex - 3)];
-  const bearingTo = arcPositions[Math.min(arcPositions.length - 1, midIndex + 3)];
-  const bearing = arcPositions.length > 1 ? getBearing(bearingFrom, bearingTo) : 0;
+  // Unwrap the raw arc (may exceed ±180°) only for the midpoint & bearing
+  // calculation so the plane icon sits at the true geographic midpoint.
+  const unwrapped = unwrapLongitudes(rawArc);
+  const midIndex = Math.floor(unwrapped.length / 2);
+  const midPoint = rawArc[midIndex]; // use canonical coordinates for the marker
+  const bearingFrom = unwrapped[Math.max(0, midIndex - 3)];
+  const bearingTo = unwrapped[Math.min(unwrapped.length - 1, midIndex + 3)];
+  const bearing = unwrapped.length > 1 ? getBearing(bearingFrom, bearingTo) : 0;
   const planeRotation = bearing - 90;
 
   const planeIcon = L.divIcon({

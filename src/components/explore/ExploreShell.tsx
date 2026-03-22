@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Filter, LocateFixed } from "lucide-react";
 import { routes } from "@/data/routes";
 import { suppliers } from "@/data/suppliers";
@@ -33,10 +33,17 @@ export function ExploreShell() {
   const [tab, setTab] = useState<TabId>("routes");
   const [priority, setPriority] = useState<OptimizeFor>("cost");
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(routes[0]?.id ?? null);
+  const [comparedRouteIds, setComparedRouteIds] = useState<string[]>([]);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [showTradeAdvantages, setShowTradeAdvantages] = useState(true);
   const [onlyTradeRoutes, setOnlyTradeRoutes] = useState(false);
   const [minimizeImportTax, setMinimizeImportTax] = useState(false);
+
+  const toggleCompare = useCallback((id: string) => {
+    setComparedRouteIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }, []);
 
   const { location, loading: geoLoading, permissionDenied } = useGeolocation();
 
@@ -124,7 +131,23 @@ export function ExploreShell() {
                             </p>
                           </div>
                         </div>
-                        <div className="shrink-0">
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleCompare(routeItem.id);
+                              setTab("compare");
+                            }}
+                            title={comparedRouteIds.includes(routeItem.id) ? "Remove from comparison" : "Add to comparison"}
+                            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                              comparedRouteIds.includes(routeItem.id)
+                                ? "border-blue-300 bg-blue-50 text-blue-700"
+                                : "border-zinc-200 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600"
+                            }`}
+                          >
+                            {comparedRouteIds.includes(routeItem.id) ? "✓ Compare" : "+ Compare"}
+                          </button>
                           <Badge label={routeItem.tradeAgreement?.name ?? "No FTA"} tone="warning" />
                         </div>
                       </div>
@@ -156,7 +179,13 @@ export function ExploreShell() {
 
             {tab === "compare" ? (
               <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                <ComparisonPanel routes={filteredRoutes} priority={priority} onPriorityChange={setPriority} />
+                <ComparisonPanel
+                  routes={filteredRoutes}
+                  priority={priority}
+                  onPriorityChange={setPriority}
+                  comparedRouteIds={comparedRouteIds}
+                  onToggleCompare={toggleCompare}
+                />
               </div>
             ) : null}
 

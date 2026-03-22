@@ -13,8 +13,8 @@ export const tradeAgreements: TradeAgreement[] = [
   {
     id: "cptpp",
     name: "CPTPP",
-    eligibleCountries: ["Vietnam", "Japan", "Mexico"],
-    productCategories: ["textiles", "electronics components", "precision bearings"],
+    eligibleCountries: ["Vietnam", "Japan", "Mexico", "Australia", "Singapore"],
+    productCategories: ["textiles", "electronics components", "precision bearings", "industrial sensors", "automation equipment"],
     tariffReductionPercent: 65,
     customsClearanceBoostPercent: 12,
     requiredDocuments: ["Certificate of Origin", "Packing List", "Commercial Invoice"],
