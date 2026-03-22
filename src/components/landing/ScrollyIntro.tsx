@@ -17,31 +17,29 @@ type SentencePart = { text: string; emphasized?: boolean };
 const SENTENCES: SentencePart[][] = [
   [
     { text: "In Canada's " },
-    { text: "2 trillion-dollar", emphasized: true },
-    { text: " trade era, small and medium businesses fuel " },
-    { text: "37.9%", emphasized: true },
+    { text: "2 trillion-dollar trade era,", emphasized: true },
+    { text: " small and medium businesses fuel " },
+    { text: " 37.9%          ", emphasized: true },
     { text: " of all export value. 💵" },
   ],
   [
     { text: "Canada has a wide network through " },
     { text: "15 free trade agreements", emphasized: true },
     { text: " with " },
-    { text: "51 countries", emphasized: true },
-    { text: ", giving access to more than " },
-    { text: "1.5 billion consumers", emphasized: true },
-    { text: ". 🗺️" },
+    { text: "51 countries, ", emphasized: true },
+    { text: " giving access to more than " },
+    { text: "1.5 billion consumers. 🗺️", emphasized: true },
   ],
   [
     { text: "Canada commits to " },
-    { text: "net-zero emissions by 2050", emphasized: true },
-    { text: ", with shipping policies reflecting those commitments via " },
-    { text: "green shipping corridors", emphasized: true },
-    { text: " with lower carbon emissions. 🌿" },
+    { text: "net-zero emissions by 2050, ", emphasized: true },
+    { text: " with shipping policies reflecting those commitments via " },
+    { text: "green shipping corridors with lower carbon emissions. 🌿", emphasized: true },
   ],
   [
-    { text: "Embark 🚢", emphasized: true },
+    { text: "Embark 🚢 and discover new connections..."},
     {
-      text: "  and discover new connections on this global, sustainable trade journey...",
+      text: "   on this global, sustainable trade journey...", emphasized: true ,
     },
   ],
 ];
