@@ -96,9 +96,11 @@ function SentenceBlock({
 function ScrollIndicator({
   opacity,
   bounceY,
+  keyboardHint,
 }: {
   opacity: MotionValue<number>;
   bounceY: MotionValue<number>;
+  keyboardHint: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -115,10 +117,13 @@ function ScrollIndicator({
   return (
     <div
       ref={ref}
-      className="absolute bottom-10 flex flex-col items-center text-white/30"
+      className="absolute bottom-10 flex flex-col items-center gap-2 text-white/30"
     >
       <ChevronDown className="h-5 w-5 -mb-2.5" strokeWidth={1.5} />
       <ChevronDown className="h-5 w-5" strokeWidth={1.5} />
+      <p className="max-w-[14rem] text-center text-[10px] font-normal leading-snug tracking-wide text-white/25">
+        {keyboardHint}
+      </p>
     </div>
   );
 }
@@ -144,6 +149,7 @@ export function ScrollyIntro() {
   const [introComplete, setIntroComplete] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const [revealStarted, setRevealStarted] = useState(false);
+  const [keyboardScrollEnabled, setKeyboardScrollEnabled] = useState(true);
 
   const hasScrolledRef = useRef(false);
   const revealStartedRef = useRef(false);
@@ -277,6 +283,58 @@ export function ScrollyIntro() {
     return () => clearTimeout(timeout);
   }, [hasScrolled, bounceY]);
 
+  // Arrow / Page keys scroll the runway; Shift+N toggles keyboard navigation
+  useEffect(() => {
+    if (introComplete) return;
+
+    const isTypingTarget = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      if (!el?.closest) return false;
+      return Boolean(el.closest("input, textarea, select, [contenteditable=true]"));
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target)) return;
+
+      if (e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setKeyboardScrollEnabled((v) => !v);
+        return;
+      }
+
+      if (!keyboardScrollEnabled) return;
+
+      if (
+        e.key !== "ArrowDown" &&
+        e.key !== "ArrowUp" &&
+        e.key !== "PageDown" &&
+        e.key !== "PageUp"
+      ) {
+        return;
+      }
+
+      const el = containerRef.current;
+      if (!el) return;
+
+      e.preventDefault();
+      const max = Math.max(0, el.scrollHeight - el.clientHeight);
+      if (max <= 0) return;
+
+      const step = max / STEPS;
+      const pageMultiplier = e.key === "PageDown" || e.key === "PageUp" ? 2 : 1;
+      const dir =
+        e.key === "ArrowDown" || e.key === "PageDown" ? 1 : -1;
+
+      el.scrollBy({
+        top: dir * step * pageMultiplier,
+        behavior: "smooth",
+      });
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [introComplete, keyboardScrollEnabled]);
+
   return (
     <>
       {/* HeroSection is always mounted; pointer events enabled once reveal begins */}
@@ -326,7 +384,15 @@ export function ScrollyIntro() {
               </div>
 
               {/* Scroll indicator */}
-              <ScrollIndicator opacity={indicatorOpacity} bounceY={bounceY} />
+              <ScrollIndicator
+                opacity={indicatorOpacity}
+                bounceY={bounceY}
+                keyboardHint={
+                  keyboardScrollEnabled
+                    ? "↑ ↓ or PgUp/PgDn to scroll · Shift+N to turn off keys"
+                    : "Keyboard off · Shift+N to turn on"
+                }
+              />
 
               {/* Progress bar at bottom edge */}
               <ProgressBar progress={progressValue} />
