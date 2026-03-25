@@ -7,6 +7,16 @@ import { EnrichedRoute } from "@/lib/costCalculator";
 import { RouteTooltip } from "@/components/map/RouteTooltip";
 import { getBearing, getRouteColor, greatCircleArc, unwrapLongitudes } from "@/lib/mapUtils";
 
+/** Longitude shifts so the same route renders in each horizontally repeated world copy. */
+const WORLD_COPY_OFFSETS = [-720, -360, 0, 360, 720] as const;
+
+function shiftLngPath(
+  path: [number, number][],
+  lngOffset: number,
+): [number, number][] {
+  return path.map(([lat, lng]) => [lat, lng + lngOffset]);
+}
+
 interface RoutePolylineProps {
   route: EnrichedRoute;
   isSelected: boolean;
@@ -19,14 +29,13 @@ interface RoutePolylineProps {
 export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect, onCompare }: RoutePolylineProps) {
   const [hovered, setHovered] = useState(false);
   const rawArc = greatCircleArc(
-    route.supplier.coordinates,
     route.destinationCoordinates,
+    route.supplier.coordinates,
   );
 
-  // Unwrap the arc so longitudes are continuous (may exceed ±180°).
-  // Leaflet handles out-of-range longitudes by mapping them to the correct
-  // world copy, so a trans-Pacific arc (e.g. 92°E → 237°) renders as a
-  // single connected line instead of two disconnected half-arcs.
+  // Unwrap longitudes so the arc is one continuous path (may exceed ±180°).
+  // Duplicate that path at ±360° steps so the line appears in every map copy
+  // when the basemap tiles repeat horizontally.
   const arc = unwrapLongitudes(rawArc);
   const midIndex = Math.floor(arc.length / 2);
   const midPoint = arc[midIndex];
@@ -63,23 +72,32 @@ export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect,
 
   return (
     <>
-      <Polyline
-        positions={arc}
-        pathOptions={pathOptions}
-        eventHandlers={sharedHandlers}
-      >
-        <Tooltip sticky>
-          <RouteTooltip route={route} />
-        </Tooltip>
-      </Polyline>
+      {WORLD_COPY_OFFSETS.map((lngOffset) => {
+        const positions = shiftLngPath(arc, lngOffset);
+        return (
+          <Polyline
+            key={`${route.id}-${lngOffset}`}
+            positions={positions}
+            pathOptions={pathOptions}
+            eventHandlers={sharedHandlers}
+          >
+            <Tooltip sticky>
+              <RouteTooltip route={route} />
+            </Tooltip>
+          </Polyline>
+        );
+      })}
 
-      {!dimmed && midPoint && (
-        <Marker
-          position={midPoint}
-          icon={planeIcon}
-          eventHandlers={sharedHandlers}
-        />
-      )}
+      {!dimmed &&
+        midPoint &&
+        WORLD_COPY_OFFSETS.map((lngOffset) => (
+          <Marker
+            key={`${route.id}-plane-${lngOffset}`}
+            position={shiftLngPath([midPoint], lngOffset)[0]}
+            icon={planeIcon}
+            eventHandlers={sharedHandlers}
+          />
+        ))}
     </>
   );
 }
