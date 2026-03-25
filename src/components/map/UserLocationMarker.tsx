@@ -2,6 +2,8 @@
 
 import L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
+import { useWorldCopyLngOffsetsForPoint } from "@/hooks/useWorldCopyLngOffsets";
+import { shiftLngPoint } from "@/lib/mapUtils";
 
 interface UserLocationMarkerProps {
   lat: number;
@@ -10,6 +12,8 @@ interface UserLocationMarkerProps {
 }
 
 export function UserLocationMarker({ lat, lng, label = "Your Location" }: UserLocationMarkerProps) {
+  const lngOffsets = useWorldCopyLngOffsetsForPoint(lng);
+
   const icon = L.divIcon({
     className: "",
     html: `
@@ -23,10 +27,18 @@ export function UserLocationMarker({ lat, lng, label = "Your Location" }: UserLo
   });
 
   return (
-    <Marker position={[lat, lng]} icon={icon}>
-      <Popup>
-        <p className="text-xs font-medium">Your destination · {label}</p>
-      </Popup>
-    </Marker>
+    <>
+      {lngOffsets.map((lngOffset) => (
+        <Marker
+          key={lngOffset}
+          position={shiftLngPoint(lat, lng, lngOffset)}
+          icon={icon}
+        >
+          <Popup>
+            <p className="text-xs font-medium">Your destination · {label}</p>
+          </Popup>
+        </Marker>
+      ))}
+    </>
   );
 }

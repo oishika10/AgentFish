@@ -5,17 +5,14 @@ import L from "leaflet";
 import { Polyline, Tooltip, Marker } from "react-leaflet";
 import { EnrichedRoute } from "@/lib/costCalculator";
 import { RouteTooltip } from "@/components/map/RouteTooltip";
-import { getBearing, getRouteColor, greatCircleArc, unwrapLongitudes } from "@/lib/mapUtils";
-
-/** Longitude shifts so the same route renders in each horizontally repeated world copy. */
-const WORLD_COPY_OFFSETS = [-720, -360, 0, 360, 720] as const;
-
-function shiftLngPath(
-  path: [number, number][],
-  lngOffset: number,
-): [number, number][] {
-  return path.map(([lat, lng]) => [lat, lng + lngOffset]);
-}
+import { useWorldCopyLngOffsetsForLngSpan } from "@/hooks/useWorldCopyLngOffsets";
+import {
+  getBearing,
+  getRouteColor,
+  greatCircleArc,
+  shiftLngPath,
+  unwrapLongitudes,
+} from "@/lib/mapUtils";
 
 interface RoutePolylineProps {
   route: EnrichedRoute;
@@ -37,6 +34,10 @@ export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect,
   // Duplicate that path at ±360° steps so the line appears in every map copy
   // when the basemap tiles repeat horizontally.
   const arc = unwrapLongitudes(rawArc);
+  const lngs = arc.map((p) => p[1]);
+  const lngMin = Math.min(...lngs);
+  const lngMax = Math.max(...lngs);
+  const lngOffsets = useWorldCopyLngOffsetsForLngSpan(lngMin, lngMax);
   const midIndex = Math.floor(arc.length / 2);
   const midPoint = arc[midIndex];
   const bearingFrom = arc[Math.max(0, midIndex - 3)];
@@ -72,7 +73,7 @@ export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect,
 
   return (
     <>
-      {WORLD_COPY_OFFSETS.map((lngOffset) => {
+      {lngOffsets.map((lngOffset) => {
         const positions = shiftLngPath(arc, lngOffset);
         return (
           <Polyline
@@ -90,7 +91,7 @@ export function RoutePolyline({ route, isSelected, isCompared, dimmed, onSelect,
 
       {!dimmed &&
         midPoint &&
-        WORLD_COPY_OFFSETS.map((lngOffset) => (
+        lngOffsets.map((lngOffset) => (
           <Marker
             key={`${route.id}-plane-${lngOffset}`}
             position={shiftLngPath([midPoint], lngOffset)[0]}

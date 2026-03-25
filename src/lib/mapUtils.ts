@@ -1,5 +1,43 @@
 import { Coordinates, RouteClass } from "@/types";
 
+/**
+ * Longitude offsets (360° × k) so geometry in [lngMin, lngMax] (unwrapped) overlaps
+ * the visible map bounds [west, east] in Leaflet's unwrapped lng space. Ensures
+ * copies appear when panning west (negative longitudes) as well as east.
+ */
+export function worldCopyLngOffsetsForLngRange(
+  lngMin: number,
+  lngMax: number,
+  west: number,
+  east: number,
+  padDeg = 90,
+  extras = 2,
+): number[] {
+  const w = west - padDeg;
+  const e = east + padDeg;
+  if (w <= e) {
+    const kMin = Math.floor((w - lngMax) / 360) - extras;
+    const kMax = Math.ceil((e - lngMin) / 360) + extras;
+    const out: number[] = [];
+    for (let k = kMin; k <= kMax; k++) {
+      out.push(360 * k);
+    }
+    return out;
+  }
+  return Array.from({ length: 17 }, (_, i) => 360 * (i - 8));
+}
+
+export function shiftLngPoint(lat: number, lng: number, lngOffset: number): [number, number] {
+  return [lat, lng + lngOffset];
+}
+
+export function shiftLngPath(
+  path: [number, number][],
+  lngOffset: number,
+): [number, number][] {
+  return path.map(([lat, lng]) => [lat, lng + lngOffset]);
+}
+
 export function getRouteColor(routeClass: RouteClass) {
   if (routeClass === "cheapest") return "#1f2937";
   if (routeClass === "fastest") return "#374151";

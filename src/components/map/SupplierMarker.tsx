@@ -3,6 +3,8 @@
 import L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
 import { EnrichedRoute } from "@/lib/costCalculator";
+import { useWorldCopyLngOffsetsForPoint } from "@/hooks/useWorldCopyLngOffsets";
+import { shiftLngPoint } from "@/lib/mapUtils";
 
 interface SupplierMarkerProps {
   route: EnrichedRoute;
@@ -10,6 +12,7 @@ interface SupplierMarkerProps {
 
 export function SupplierMarker({ route }: SupplierMarkerProps) {
   const { supplier } = route;
+  const lngOffsets = useWorldCopyLngOffsetsForPoint(supplier.coordinates.lng);
 
   const icon = L.divIcon({
     className: "",
@@ -24,19 +27,28 @@ export function SupplierMarker({ route }: SupplierMarkerProps) {
   });
 
   return (
-    <Marker
-      position={[supplier.coordinates.lat, supplier.coordinates.lng]}
-      icon={icon}
-    >
-      <Popup>
-        <div className="space-y-1 text-xs">
-          <p className="font-semibold">{supplier.name}</p>
-          <p>
-            {supplier.city}, {supplier.country}
-          </p>
-          <p>Products: {supplier.products.join(", ")}</p>
-        </div>
-      </Popup>
-    </Marker>
+    <>
+      {lngOffsets.map((lngOffset) => (
+        <Marker
+          key={lngOffset}
+          position={shiftLngPoint(
+            supplier.coordinates.lat,
+            supplier.coordinates.lng,
+            lngOffset,
+          )}
+          icon={icon}
+        >
+          <Popup>
+            <div className="space-y-1 text-xs">
+              <p className="font-semibold">{supplier.name}</p>
+              <p>
+                {supplier.city}, {supplier.country}
+              </p>
+              <p>Products: {supplier.products.join(", ")}</p>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </>
   );
 }
